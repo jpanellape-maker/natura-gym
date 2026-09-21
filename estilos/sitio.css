@@ -1,0 +1,621 @@
+/* Página pública de Natura Gym («la visita guiada») y pantallas de ingreso.
+   Usa los tokens de ds.css; acá no va ningún color ni padding literal. */
+
+/* ---- barra: la línea del recorrido ----
+   Cada parada es un tramo de línea al pie de la barra; el tramo se llena (--avance 0→1)
+   a medida que se recorre esa sección. Así la barra es a la vez menú y progreso. */
+.barra{position:sticky;top:0;z-index:20;background:var(--nav);color:var(--nav-texto);box-shadow:0 1px 0 var(--nav-velo)}
+.barra-int{max-width:1180px;margin:0 auto;padding:0 var(--e6);height:var(--alto-cab);display:flex;align-items:center;gap:var(--e3)}
+.barra .logo{width:36px;height:36px;border-radius:var(--r-pastilla);background:var(--superficie);object-fit:cover;flex:none}
+.barra .nombre{font-weight:600;font-size:16px;white-space:nowrap}
+.barra nav{margin-left:auto;display:flex;align-items:stretch;align-self:stretch}
+.barra nav a.parada{position:relative;padding:0 var(--e4);display:inline-flex;align-items:center;font-size:14px;color:var(--nav-texto-2);text-decoration:none;transition:color var(--t-hover);--avance:0}
+.barra nav a.parada::before,.barra nav a.parada::after{content:"";position:absolute;left:var(--e2);right:var(--e2);bottom:0;height:2px;border-radius:var(--r-pastilla)}
+.barra nav a.parada::before{background:var(--nav-velo)}
+.barra nav a.parada::after{background:var(--marca);transform:scaleX(var(--avance));transform-origin:left;transition:transform var(--t-hover) linear}
+.barra nav a.parada:hover{color:var(--nav-texto)}
+.barra nav a.parada[aria-current="true"]{color:var(--nav-texto);font-weight:600}
+.barra nav a.parada.pasada{color:var(--nav-texto-2)}
+.barra nav .btn{align-self:center;margin-left:var(--e4)}
+.barra nav .cuenta-btns{display:flex;align-items:center;gap:var(--e1);margin-left:var(--e4)}
+.barra nav .cuenta-btns .btn{margin-left:0}
+.barra nav .cuenta-btns .btn-fantasma{color:var(--nav-texto-2)}
+.barra nav .cuenta-btns .btn-fantasma:hover{background:var(--nav-velo);color:var(--nav-texto)}
+.barra .menu{display:none}
+.barra .puntos{display:none;gap:var(--e1);margin-left:auto;align-items:center}
+.barra .puntos i{position:relative;width:18px;height:2px;border-radius:var(--r-pastilla);background:var(--nav-velo);overflow:hidden;--avance:0}
+.barra .puntos i::after{content:"";position:absolute;inset:0;background:var(--marca);transform:scaleX(var(--avance));transform-origin:left;transition:transform var(--t-hover) linear}
+@media(max-width:860px){
+  .barra nav{position:absolute;left:0;right:0;top:var(--alto-cab);background:var(--nav);flex-direction:column;align-items:stretch;padding:var(--e2) var(--e4) var(--e4);gap:var(--e1);border-bottom:1px solid var(--nav-velo)}
+  .barra nav[hidden]{display:none}
+  .barra nav a.parada{height:44px;padding:0 var(--e3);border-radius:var(--r-chico)}
+  .barra nav a.parada::before,.barra nav a.parada::after{left:0;right:auto;top:10px;bottom:10px;width:3px;height:auto;transform:none;transition:none}
+  .barra nav a.parada::before{background:transparent}
+  .barra nav a.parada::after{opacity:0}
+  .barra nav a.parada[aria-current="true"]{background:var(--nav-velo)}
+  .barra nav a.parada[aria-current="true"]::after{opacity:1}
+  .barra nav .btn{align-self:stretch;margin:var(--e2) 0 0}
+  .barra nav .cuenta-btns{display:grid;gap:var(--e2);margin:var(--e3) 0 0}
+  .barra nav .cuenta-btns .btn{margin:0;height:44px}
+  .barra .puntos{display:flex}
+  .barra .menu{display:inline-grid;margin-left:0;color:var(--nav-texto)}
+  /* barra simple (registro, perfil): sin paradas ni menú, los botones quedan a la vista */
+  .barra.simple nav{position:static;flex-direction:row;align-items:center;padding:0;border:0;margin-left:auto}
+  .barra.simple nav .cuenta-btns{display:flex;margin:0}
+  .barra.simple nav .cuenta-btns .btn{height:34px}
+}
+
+/* ---- el recorrido ---- */
+main{display:grid}
+.parada-sec{scroll-margin-top:var(--alto-cab);min-width:0}
+.int{max-width:1180px;margin:0 auto;padding:0 var(--e6);width:100%;min-width:0}
+.parada-sec h2{font-size:clamp(28px,3.6vw,44px);font-weight:700;line-height:1.08;letter-spacing:-.02em;text-wrap:balance}
+.parada-sec .dice{color:var(--texto-2);font-size:17px;line-height:1.5;max-width:52ch;margin-top:var(--e4)}
+.parada-sec .dice b{color:var(--texto);font-weight:600}
+.parada-sec .acciones{display:flex;gap:var(--e2);margin-top:var(--e6);flex-wrap:wrap}
+@media(max-width:560px){.int{padding:0 var(--e4)}}
+
+/* marcadores de foto y video: honestos hasta que el gym pase los reales */
+.foto{position:relative;border-radius:var(--r);background:linear-gradient(160deg,var(--superficie-3),var(--superficie-2) 55%,var(--marca-suave));overflow:hidden;min-height:200px;display:grid;place-items:end start;box-shadow:var(--sombra)}
+.foto>img,.foto>video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.etq{position:relative;margin:var(--e3);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--r-pastilla);background:var(--nav);color:var(--nav-texto-2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.etq .ic{width:14px;height:14px}
+.foto.retrato{aspect-ratio:9/16;min-height:0}
+.foto.ancha{aspect-ratio:16/9;min-height:0}
+
+/* ---- parada 0: la puerta ---- */
+.puerta{position:relative;min-height:calc(100dvh - var(--alto-cab));display:grid;align-items:end;background:var(--nav);color:var(--nav-texto);overflow:hidden;isolation:isolate}
+.puerta .video{position:absolute;inset:0;z-index:-2;background:linear-gradient(180deg,var(--superficie-3) 0%,var(--nav) 100%)}
+.puerta .video>video,.puerta .video>img{width:100%;height:100%;object-fit:cover;display:block}
+.puerta .velo{position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,transparent 30%,var(--nav) 92%)}
+.puerta .int{padding-top:var(--e12);padding-bottom:var(--e12);display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:var(--e8)}
+.puerta h1{font-size:clamp(40px,6vw,72px);line-height:1;font-weight:700;letter-spacing:-.03em;max-width:12ch;animation:sube var(--t-entrada) both}
+.puerta h1 em{font-style:normal;color:var(--marca)}
+.puerta .dice{color:var(--nav-texto-2);max-width:44ch;font-size:17px;margin-top:var(--e4);animation:sube var(--t-entrada) 60ms both}
+.puerta .acciones{animation:sube var(--t-entrada) 120ms both}
+.puerta .etq-video{position:absolute;top:var(--e6);right:var(--e6);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--r-pastilla);background:var(--nav-velo);color:var(--nav-texto-2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;backdrop-filter:blur(6px)}
+.siguiente{display:inline-flex;align-items:center;gap:var(--e2);color:var(--texto-2);text-decoration:none;font-size:13px;padding:var(--e2) 0;transition:color var(--t-hover)}
+.siguiente:hover{color:var(--texto)}
+.siguiente b{color:var(--texto);font-weight:600}
+.parada-sec:not(.puerta) .siguiente{margin-top:var(--e6)}
+.puerta .siguiente{color:var(--nav-texto-2)}.puerta .siguiente:hover{color:var(--nav-texto)}.puerta .siguiente b{color:var(--nav-texto)}
+.siguiente .ic{width:16px;height:16px}
+@keyframes sube{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@media(max-width:860px){.puerta .int{grid-template-columns:1fr;padding-top:var(--e8);padding-bottom:var(--e8)}.puerta h1{max-width:none}}
+
+/* ---- parada 1: la sala ---- */
+.sala{padding:var(--e12) 0}
+.sala .int{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--e8);align-items:center}
+.sala .fotos{display:grid;grid-template-columns:1fr 1fr;gap:var(--e3)}
+.sala .fotos .foto:first-child{grid-column:1/-1;aspect-ratio:16/9}
+.sala .fotos .foto{aspect-ratio:4/3;min-height:0}
+@media(max-width:860px){.sala{padding:var(--e8) 0}.sala .int{grid-template-columns:1fr;gap:var(--e6)}}
+
+/* ---- parada 2: una clase ---- */
+.clases{padding:var(--e12) 0;background:var(--superficie);border-top:1px solid var(--borde);border-bottom:1px solid var(--borde)}
+.clases .cab{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--e6);align-items:end}
+/* Las ocho clases no entran de una sin apretarlas: se muestran --a-la-vez y el
+   resto se trae con las flechas. La línea de abajo es la misma idea que los
+   tramos de la barra: verde sobre línea apagada, y dice cuánto queda. */
+.reels-ctl{display:flex;gap:var(--e1)}
+.reels-ctl .btn-icono{width:40px;height:40px;border-radius:var(--r);border:1px solid var(--borde)}
+.reels-ctl .btn-icono:disabled{opacity:.35;cursor:default;background:transparent;color:var(--texto-3)}
+.reels{--a-la-vez:4;display:grid;grid-auto-flow:column;grid-auto-columns:calc((100% - (var(--a-la-vez) - 1) * var(--e4)) / var(--a-la-vez));gap:var(--e4);margin-top:var(--e8);overflow-x:auto;min-width:0;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none}
+.reels::-webkit-scrollbar{display:none}
+.reels:focus-visible{outline:2px solid var(--marca);outline-offset:var(--e2);border-radius:var(--r)}
+.reel{scroll-snap-align:start;display:grid;gap:var(--e3);min-width:0;align-content:start}
+.reel .foto{aspect-ratio:4/5;min-height:0}
+.reel b{display:block;font-size:16px;font-weight:600}
+.reel .cuando{display:block;color:var(--marca);font-size:13px;font-weight:600;margin-top:2px}
+.reel p{color:var(--texto-2);font-size:14px;margin-top:var(--e1)}
+.reels-linea{position:relative;height:2px;margin-top:var(--e6);border-radius:var(--r-pastilla);background:var(--borde);overflow:hidden}
+.reels-linea i{position:absolute;inset:0 auto 0 0;width:100%;border-radius:var(--r-pastilla);background:var(--marca);transform-origin:left;transition:transform var(--t-estado)}
+@media(prefers-reduced-motion:reduce){.reels{scroll-behavior:auto}.reels-linea i{transition:none}}
+@media(max-width:860px){
+  .clases{padding:var(--e8) 0}
+  .clases .cab{grid-template-columns:1fr}
+  .reels-ctl{display:none}
+  .reels{grid-auto-columns:minmax(220px,70vw);margin-top:var(--e6)}
+  .reels-linea{margin-top:var(--e4)}
+}
+
+/* ---- parada 3: los profes ---- */
+.profes{padding:var(--e12) 0}
+.equipo{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--e3);margin-top:var(--e8)}
+.equipo .p{display:grid;gap:var(--e3);min-width:0}
+.equipo .foto{aspect-ratio:3/4;min-height:0}
+.equipo .foto i{position:absolute;inset:0;display:grid;place-items:center;font-size:clamp(40px,5vw,64px);font-weight:700;font-style:normal;color:var(--marca);opacity:.35;letter-spacing:-.04em}
+.equipo b{display:block;font-size:16px;font-weight:600}
+.equipo small{display:block;color:var(--texto-2);font-size:13px;margin-top:2px}
+@media(max-width:860px){.profes{padding:var(--e8) 0}.equipo{grid-template-columns:repeat(2,1fr);margin-top:var(--e6)}}
+
+/* ---- parada 4: el mostrador (planes) ---- */
+.mostrador{padding:var(--e12) 0;background:var(--superficie);border-top:1px solid var(--borde);border-bottom:1px solid var(--borde)}
+.mostrador .cab{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:var(--e6);align-items:end}
+.planes-ctl{display:flex;gap:var(--e4);align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--superficie-3);border-radius:var(--r-pastilla);padding:3px;gap:2px}
+.seg button{height:34px;padding:0 var(--e4);border:0;border-radius:var(--r-pastilla);background:transparent;font-size:13px;font-weight:600;color:var(--texto-2);cursor:pointer;transition:background var(--t-hover),color var(--t-hover)}
+.seg button:hover{color:var(--texto)}
+.seg button[aria-pressed="true"]{background:var(--superficie);color:var(--texto);box-shadow:var(--sombra)}
+.check{display:inline-flex;gap:var(--e2);align-items:center;font-size:14px;color:var(--texto-2);cursor:pointer}
+
+.planes{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--e4);margin-top:var(--e8)}
+.plan{background:var(--fondo);border-radius:var(--r);box-shadow:var(--sombra);padding:var(--e6);display:flex;flex-direction:column;gap:var(--e4);position:relative;min-width:0}
+.plan.elegido{box-shadow:0 0 0 2px var(--marca),var(--sombra)}
+.plan .etq{position:absolute;top:-12px;left:var(--e6);margin:0;background:var(--marca);color:var(--sobre-marca);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:var(--e1) 10px;border-radius:var(--r-pastilla)}
+.plan h3{font-size:20px;font-weight:600}
+.plan .resumen{font-size:14px;color:var(--texto-2);margin-top:2px}
+.plan .precio{font-size:36px;font-weight:600;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.plan .precio small{font-size:13px;font-weight:400;color:var(--texto-3);margin-left:var(--e1);letter-spacing:0}
+.plan .tachado{font-size:13px;color:var(--texto-3);margin-top:6px;min-height:20px}
+.plan .tachado s{text-decoration:line-through}
+.plan ul{list-style:none;margin:0;padding:0;display:grid;gap:var(--e2);font-size:14px;color:var(--texto-2)}
+.plan li{display:flex;gap:10px;align-items:flex-start}
+.plan li .ic{width:18px;height:18px;margin-top:1px;color:var(--marca)}
+.plan li.no{color:var(--texto-3)}.plan li.no .ic{color:var(--borde-fuerte)}
+.plan li.extra .ic{color:var(--alerta)}
+.plan li b{color:var(--texto);font-weight:600}
+.plan .btn{margin-top:auto}
+.mostrador .nota{margin-top:var(--e6)}
+@media(max-width:1180px){.mostrador .cab{grid-template-columns:1fr;align-items:start}}
+@media(max-width:860px){.mostrador{padding:var(--e8) 0}.planes{grid-template-columns:1fr;max-width:480px;margin-top:var(--e6)}.plan.elegido{order:-1}}
+
+/* ---- parada 5: el bar (beneficios) ----
+   Los días del bar se muestran como en las historias del gym: el día grande, la
+   marca y lo que te llevás. El resto es una lista, sin tarjetas. */
+.beneficios{padding:var(--e12) 0}
+.beneficios .dias{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--e4);margin-top:var(--e8)}
+.dia-b{position:relative;display:grid;gap:var(--e1);padding:var(--e6);border-radius:var(--r);background:var(--nav);color:var(--nav-texto);box-shadow:var(--sombra);overflow:hidden;isolation:isolate;min-height:200px;align-content:end}
+.dia-b::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(160deg,var(--marca-suave) 0%,transparent 60%);opacity:.6}
+.dia-b>.etq{position:absolute;top:var(--e3);right:var(--e3);margin:0}
+.paso-cab .n .ic{width:16px;height:16px}
+.dia-b .cuando{font-size:clamp(36px,4.5vw,56px);font-weight:700;line-height:1;letter-spacing:-.03em;color:var(--marca)}
+.dia-b b{font-size:20px;font-weight:600;line-height:1.25;margin-top:var(--e2)}
+.dia-b .con{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--nav-texto-2)}
+.dia-b p{color:var(--nav-texto-2);font-size:14px;margin-top:var(--e1)}
+.beneficios-grupos{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--e8);margin-top:var(--e8)}
+.grupo-b h3{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--texto-3);padding-bottom:var(--e3);border-bottom:1px solid var(--borde)}
+.grupo-b dl{margin:0;display:grid}
+.grupo-b dl>div{padding:var(--e3) 0;border-bottom:1px solid var(--borde);display:grid;gap:var(--e1)}
+.grupo-b dt{font-weight:600;font-size:15px;display:flex;gap:var(--e2);align-items:center;flex-wrap:wrap}
+.grupo-b dd{margin:0;font-size:14px;color:var(--texto-2)}
+.grupo-b dd b{color:var(--texto);font-weight:600}
+@media(max-width:860px){.beneficios{padding:var(--e8) 0}.beneficios .dias{grid-template-columns:1fr;margin-top:var(--e6)}.dia-b{min-height:0;padding-top:var(--e12)}.beneficios-grupos{grid-template-columns:1fr;gap:var(--e6)}}
+
+/* ---- páginas de cuenta: registro y perfil ----
+   Comparten la barra del sitio; el contenido va en una sola columna angosta. */
+.registro{max-width:720px;margin:0 auto;padding:var(--e8) var(--e6) var(--e12);display:grid;gap:var(--e6);min-width:0}
+.registro>h1{font-size:clamp(28px,3.6vw,40px);font-weight:700;line-height:1.08;letter-spacing:-.02em}
+.registro .dice{font-size:17px;color:var(--texto-2);max-width:52ch}
+.registro .cab{display:grid;gap:var(--e2)}
+.pasos{display:grid;gap:var(--e4)}
+.paso{background:var(--superficie);border-radius:var(--r);box-shadow:var(--sombra);overflow:hidden;transition:box-shadow var(--t-estado),opacity var(--t-estado)}
+.paso[data-estado="activo"]{box-shadow:0 0 0 2px var(--marca),var(--sombra)}
+.paso-cab{display:flex;align-items:center;gap:var(--e3);padding:var(--e4) 20px;min-height:56px}
+.paso-cab .n{width:28px;height:28px;border-radius:var(--r-pastilla);display:grid;place-items:center;font-size:13px;font-weight:600;background:var(--superficie-3);color:var(--texto-2);flex:none}
+.paso[data-estado="activo"] .paso-cab .n{background:var(--marca);color:var(--sobre-marca)}
+.paso[data-estado="hecho"] .paso-cab .n{background:var(--marca-suave);color:var(--marca-fuerte)}
+.paso-cab h2{font-size:17px;font-weight:600;flex:1;min-width:0}
+.paso-cab .resumen{font-size:13px;color:var(--texto-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:50%}
+.paso-cab .btn{flex:none}
+.paso-cuerpo{padding:0 20px var(--e6);display:grid;gap:var(--e4)}
+.paso[data-estado="pendiente"] .paso-cuerpo,.paso[data-estado="hecho"] .paso-cuerpo{display:none}
+.paso[data-estado="pendiente"]{opacity:.6}
+.opciones-plan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--e2)}
+.opcion-plan{display:grid;gap:2px;padding:var(--e3) var(--e4);border:1px solid var(--borde-fuerte);border-radius:var(--r);background:var(--superficie);text-align:left;cursor:pointer;min-width:0;transition:border-color var(--t-hover),background var(--t-hover)}
+.opcion-plan:hover{background:var(--superficie-2)}
+.opcion-plan[aria-checked="true"]{border-color:var(--marca);box-shadow:0 0 0 1px var(--marca);background:var(--marca-suave)}
+.opcion-plan b{font-size:15px}
+.opcion-plan small{font-size:13px;color:var(--texto-2)}
+.opcion-plan .precio{font-size:20px;font-weight:600;letter-spacing:-.01em;margin-top:var(--e1);font-variant-numeric:tabular-nums}
+.opcion-plan .precio small{font-weight:400;color:var(--texto-3);margin-left:2px}
+.fila-periodo{display:flex;align-items:center;gap:var(--e4);flex-wrap:wrap}
+.form-registro{display:grid;gap:var(--e4)}
+.form-registro .campo>input{height:44px}
+.form-registro .dos{display:grid;grid-template-columns:1fr 1fr;gap:var(--e3)}
+.form-registro .acciones{display:flex;gap:var(--e2);align-items:center;flex-wrap:wrap}
+.form-registro .acciones .secundario{margin-left:auto}
+.form-registro .acciones .secundario a{color:var(--marca);font-weight:600;text-decoration:none}
+
+/* el bloque de pago (js/pago.js) */
+.pago{display:grid;gap:var(--e4)}
+.pago-total{display:grid;gap:var(--e1);padding:var(--e4) 20px;background:var(--superficie-2);border-radius:var(--r)}
+.pago-total .monto{display:flex;align-items:baseline;gap:var(--e3)}
+.pago-total s{color:var(--texto-3);font-size:15px}
+.pago-medios{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--e2)}
+.medio{display:flex;align-items:center;gap:var(--e3);padding:var(--e3) var(--e4);min-height:56px;border:1px solid var(--borde-fuerte);border-radius:var(--r);background:var(--superficie);text-align:left;cursor:pointer;min-width:0;transition:border-color var(--t-hover),background var(--t-hover)}
+.medio:hover{background:var(--superficie-2)}
+.medio[aria-checked="true"]{border-color:var(--marca);box-shadow:0 0 0 1px var(--marca);background:var(--marca-suave)}
+.medio .ic{color:var(--texto-2);flex:none}
+.medio[aria-checked="true"] .ic{color:var(--marca-fuerte)}
+.medio span{display:grid;min-width:0}
+.medio b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.medio small{font-size:13px;color:var(--texto-2)}
+.pago-detalle{display:grid;gap:var(--e3);padding:var(--e4) 20px;border:1px solid var(--borde);border-radius:var(--r);font-size:15px;animation:aparece var(--t-estado)}
+.pago-detalle p{margin:0}
+.pago-detalle .btn{justify-self:start}
+.pago-qr{display:grid;grid-template-columns:auto minmax(0,1fr);gap:var(--e6);align-items:start}
+.pago-qr>div{display:grid;gap:var(--e3)}
+.qr{width:200px;height:200px;min-width:0;max-width:100%;border-radius:var(--r-chico);background:var(--qr-claro);display:block;flex:none;padding:0}
+.qr.marcador{background:linear-gradient(160deg,var(--superficie-3),var(--superficie-2) 55%,var(--marca-suave));display:grid;place-items:end start;box-shadow:var(--sombra)}
+.qr.marcador .etq,.alias.marcador .etq{margin:var(--e2);height:auto;min-height:24px;padding:var(--e1) 10px;line-height:1.3}
+.pago-opciones{display:grid;gap:var(--e2)}
+.opcion-pago{display:grid;gap:2px;padding:var(--e3) var(--e4);border:1px solid var(--borde-fuerte);border-radius:var(--r);background:var(--superficie);text-align:left;cursor:pointer;transition:border-color var(--t-hover),background var(--t-hover)}
+.opcion-pago:hover:not([disabled]){background:var(--superficie-2)}
+.opcion-pago[aria-checked="true"]{border-color:var(--marca);box-shadow:0 0 0 1px var(--marca);background:var(--marca-suave)}
+.opcion-pago[disabled]{opacity:.5;cursor:not-allowed}
+.opcion-pago b{font-size:14px}
+.opcion-pago small{font-size:13px;color:var(--texto-2)}
+.pago-alias{display:grid;gap:var(--e1)}
+.pago-alias .alias{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap}
+.pago-alias .alias .cod{font-size:20px}
+.pago-alias .alias.marcador{min-height:56px;border-radius:var(--r-chico);background:linear-gradient(160deg,var(--superficie-3),var(--superficie-2) 55%,var(--marca-suave));display:grid;place-items:center start}
+
+/* perfil del socio: plan, días y pagos, nada más */
+.mi-perfil{display:grid;gap:var(--e4)}
+.mi-perfil .plan-tarjeta{padding:var(--e6) 20px}
+.mi-perfil .plan-tarjeta .fila-btn{display:flex;gap:var(--e2);flex-wrap:wrap}
+.mi-perfil .semana-socio,.mi-perfil .lista-simple{margin-top:var(--e2)}
+.mi-perfil .dias-info{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--e3)}
+.mi-perfil .dias-info>div{display:grid;gap:2px;padding:var(--e3) var(--e4);background:var(--superficie-2);border-radius:var(--r-chico)}
+.mi-perfil .dias-info b{font-size:15px}
+.mi-perfil .dias-info span{font-size:13px;color:var(--texto-2)}
+.mi-perfil .pendiente{display:grid;gap:var(--e3);padding:var(--e4) 20px;border-radius:var(--r);background:var(--alerta-suave);color:var(--texto)}
+.mi-perfil .pendiente .fila{display:flex;align-items:center;gap:var(--e2);flex-wrap:wrap}
+.mi-perfil .pendiente .btn{justify-self:start}
+.mi-perfil .pie-perfil{display:flex;gap:var(--e2);flex-wrap:wrap;align-items:center;padding-top:var(--e2)}
+@media(max-width:860px){
+  .registro{padding:var(--e6) var(--e4) var(--e12)}
+  .opciones-plan{grid-template-columns:1fr}
+  .form-registro .dos{grid-template-columns:1fr}
+  .pago-medios{grid-template-columns:1fr}
+  .pago-qr{grid-template-columns:1fr;justify-items:center}
+  .pago-qr>div{justify-items:stretch;width:100%}
+  .paso-cab .resumen{display:none}
+  .mi-perfil .dias-info{grid-template-columns:1fr}
+}
+
+/* ---- parada 5: dónde ---- */
+.donde{padding:var(--e12) 0}
+.donde .int{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:var(--e8);align-items:start}
+.donde .foto{aspect-ratio:16/10;min-height:0;cursor:pointer}
+.donde dl{margin:var(--e6) 0 0;display:grid;grid-template-columns:auto 1fr;gap:var(--e3) var(--e4);font-size:15px}
+.donde dt{color:var(--texto-3)}.donde dd{margin:0}
+@media(max-width:860px){.donde{padding:var(--e8) 0}.donde .int{grid-template-columns:1fr;gap:var(--e6)}}
+
+/* ---- pie ---- */
+footer{border-top:1px solid var(--borde);padding:var(--e6);text-align:center;font-size:13px;color:var(--texto-3)}
+footer a{color:var(--texto-2);text-decoration:none}
+footer a:hover{color:var(--texto)}
+
+/* ---- ingreso ---- */
+.ingreso{min-height:100vh;display:grid;place-items:center;padding:var(--e6)}
+.ingreso .caja{width:100%;max-width:400px;background:var(--superficie);border-radius:var(--r-grande);box-shadow:var(--sombra);padding:var(--e8);display:grid;gap:var(--e4)}
+.ingreso .marca{display:flex;align-items:center;gap:var(--e3);margin-bottom:var(--e2);text-decoration:none}
+.ingreso .marca img{width:40px;height:40px;border-radius:var(--r-pastilla);background:var(--superficie)}
+.ingreso .marca b{font-size:16px}
+.ingreso h1{font-size:22px;font-weight:600}
+.ingreso .sub{color:var(--texto-2);font-size:14px}
+.ingreso form{display:grid;gap:var(--e4)}
+.ingreso .campo>input{height:44px}
+.ingreso .pie{font-size:13px;color:var(--texto-2);text-align:center}
+.ingreso .pie a{color:var(--marca);font-weight:600;text-decoration:none}
+.aviso{display:flex;gap:10px;align-items:flex-start;padding:var(--e3) var(--e4);border-radius:var(--r);font-size:13px}
+.aviso.critico{background:var(--critico-suave);color:var(--critico)}
+.aviso.info{background:var(--info-suave);color:var(--info)}
+.aviso svg{margin-top:1px}
+
+/* ======================= PANELES POR ROL: «el mostrador partido» =======================
+   A la izquierda la gente en vivo, a la derecha el trabajo. Barra lateral en compu,
+   pestañas abajo en el celular. Lo usan recepción, profe, dueño y socio. */
+.cabecera .cab-titulo{min-width:0}
+.cabecera h1{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cabecera .acciones{margin-left:auto}
+.cabecera .acciones+.btn-icono{flex:none}
+.solo-celu{display:none}
+.solo-celu[hidden]{display:none}
+.contenido.partido{display:grid;grid-template-columns:360px minmax(0,1fr);gap:var(--e6);align-items:start}
+.trabajo{display:grid;gap:var(--e6);align-content:start;min-width:0}
+/* sección enfocada (armar una rutina): el trabajo ocupa todo el ancho */
+.contenido.partido.enfocada{grid-template-columns:minmax(0,1fr)}
+.contenido.partido.enfocada .vivo{display:none}
+/* con todo el ancho, la tira de KPI va en una fila */
+@media(min-width:1181px){.contenido.enfocada .kpis{grid-template-columns:repeat(4,1fr)}}
+.catalogo .cat-ej[hidden],.catalogo .cat[hidden]{display:none}
+.pestanas{display:none}
+
+/* columna en vivo */
+.vivo{position:sticky;top:calc(var(--alto-cab) + var(--e6));max-height:calc(100vh - var(--alto-cab) - var(--e12));overflow:auto;background:var(--superficie);border-radius:var(--r);box-shadow:var(--sombra);display:grid;gap:var(--e4);padding:var(--e4) 0 var(--e6);align-content:start;min-width:0}
+.vivo-cab{display:flex;align-items:center;justify-content:space-between;padding:0 20px}
+.vivo-cab .cod{color:var(--texto-2)}
+.vivo-kpi{display:flex;align-items:baseline;gap:var(--e3);padding:0 20px}
+.vivo-kpi b{font-size:36px;font-weight:600;line-height:1;letter-spacing:-.02em;white-space:nowrap}
+.vivo-kpi span{font-size:14px;font-weight:600;color:var(--texto)}
+.vivo-kpi small{display:block;font-size:12px;font-weight:400;color:var(--texto-3)}
+.vivo-mini{display:grid;grid-template-columns:1fr 1fr;gap:var(--e2);padding:0 20px}
+.vivo-mini div{padding:var(--e2) var(--e3);background:var(--superficie-2);border-radius:var(--r-chico)}
+.vivo-mini b{display:block;font-size:20px;font-weight:600;line-height:1.1}
+.vivo-mini span{font-size:11px;color:var(--texto-3)}
+.vivo-grupo{display:grid;gap:var(--e1)}
+.vivo-grupo>.rotulo{padding:0 20px;margin-bottom:var(--e1)}
+.vivo-lista{display:grid}
+.fila-persona,.vivo-clase{display:grid;grid-template-columns:auto auto 1fr auto;gap:var(--e3);align-items:center;width:100%;min-height:40px;padding:6px 20px;border:0;background:transparent;text-align:left;color:inherit;font:inherit;cursor:pointer;transition:background var(--t-hover)}
+.vivo-clase{grid-template-columns:auto 1fr auto}
+.fila-persona:hover,.vivo-clase:hover{background:var(--superficie-3)}
+.fila-persona .cod,.vivo-clase .cod{color:var(--texto-3);min-width:40px}
+.fila-persona .quien,.vivo-clase .quien{min-width:0}
+.fila-persona .quien b,.vivo-clase .quien b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila-persona .quien small,.vivo-clase .quien small{display:block;font-size:11px;color:var(--texto-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila-persona.nueva{animation:sube var(--t-entrada) both}
+.lista-simple .fila-persona{grid-template-columns:auto 1fr auto;padding:6px 20px}
+.vivo .estado{padding:var(--e4) 20px}
+
+/* buscador de personas con resultados */
+.buscador-personas{position:relative}
+.panel:has(.buscador-personas){overflow:visible}   /* que el desplegable de resultados no quede recortado */
+.filtros .buscador-personas{flex:1;min-width:200px;max-width:360px}   /* dentro de los filtros mide como el buscador simple */
+.buscador-personas .resultados[hidden]{display:none}
+.buscador-personas .resultados{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:30;background:var(--superficie);border-radius:var(--r);box-shadow:var(--sombra-modal);display:grid;padding:var(--e1) 0;max-height:360px;overflow:auto}
+.buscador-personas .resultados .fila-persona{grid-template-columns:auto 1fr auto;padding:6px var(--e4)}
+.buscador-personas .sin{padding:var(--e3) var(--e4);font-size:13px;color:var(--texto-2)}
+.enlace{border:0;background:none;padding:0;font:inherit;font-weight:600;color:var(--marca);cursor:pointer}
+.buscador-grande .buscador input{height:44px;font-size:15px}
+
+/* ficha del socio (modal) */
+.ficha{display:grid;gap:var(--e4)}
+.ficha .ficha-cab .pastilla-estado{margin-left:auto}
+.ficha-grilla{display:grid;grid-template-columns:1fr 1fr;gap:var(--e3)}
+.ficha-grilla .dato{padding:var(--e3) var(--e4);background:var(--superficie-2);border-radius:var(--r-chico);display:grid;gap:2px;min-width:0}
+.ficha-grilla .dato b{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ficha-grilla .dato small{font-size:12px;color:var(--texto-3)}
+.ficha-sec{display:grid;gap:var(--e2)}
+.lista-simple{display:grid;border:1px solid var(--borde);border-radius:var(--r);overflow:hidden;background:var(--superficie)}
+.lista-simple>*+*{border-top:1px solid var(--borde)}
+.fila-reserva,.fila-prog,.fila-anotado{display:grid;grid-template-columns:auto 1fr auto;gap:var(--e3);align-items:center;min-height:40px;padding:6px var(--e4);font-size:13px}
+.fila-reserva .cod{color:var(--texto-3);min-width:100px}
+.fila-reserva .acc{display:flex;gap:var(--e1);align-items:center}
+.fila-prog{grid-template-columns:1fr auto auto}
+.fila-prog .num{font-weight:600;font-size:14px}
+.fila-anotado{grid-template-columns:1fr auto auto}
+.fila-anotado .quien{display:flex;align-items:center;gap:var(--e2);border:0;background:none;padding:0;font:inherit;color:inherit;cursor:pointer;min-width:0;text-align:left}
+.fila-anotado .quien b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tira-ingresos{display:flex;flex-wrap:wrap;gap:6px}
+.tira-ingresos .cod{padding:2px 8px;background:var(--superficie-2);border-radius:var(--r-chico);color:var(--texto-2);font-size:12px}
+.segmentado.chico button{height:26px;padding:0 10px;font-size:12px}
+.clase-res{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap}
+.clase-res .cupo{display:flex;align-items:center;gap:var(--e2)}
+.clase-res .progreso{width:120px}
+.resultado.compacto{padding:var(--e4) 0;gap:var(--e3)}
+.resultado.compacto .icono-grande{width:64px;height:64px}
+.resultado.compacto .icono-grande .ic{width:32px;height:32px}
+.resultado.compacto .display{font-size:28px}
+.total-cobro{display:grid;gap:2px;padding:var(--e4);background:var(--superficie-2);border-radius:var(--r)}
+.total-cobro .display{font-size:32px}
+.fila-campos{display:grid;grid-template-columns:1fr 1fr;gap:var(--e3)}
+.fila-campos>div{display:grid;gap:6px}
+.ver-mas{display:block;padding:var(--e2) 20px;font-size:13px;font-weight:600;color:var(--marca);text-decoration:none}
+.vacio-corto{padding:var(--e3) 20px}
+.positivo{color:var(--marca-fuerte);font-weight:600}
+
+/* clases del día y semana */
+.clases-dia{display:grid}
+.clase-fila{width:100%;border:0;background:transparent;text-align:left;color:inherit;font:inherit;cursor:pointer;transition:background var(--t-hover);min-height:56px}
+.clase-fila:hover{background:var(--superficie-3)}
+.clase-fila .cupo{display:flex;align-items:center;gap:var(--e2);font-size:12px;color:var(--texto-3);margin-top:2px}
+.clase-fila .cupo .progreso{width:72px;height:4px}
+.clase-fila.en-curso{background:var(--marca-suave)}
+.semana{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--e2)}
+.semana-col{display:grid;gap:0;align-content:start;min-width:0}
+.semana-col.hoy .semana-dia b{color:var(--marca)}
+.semana-dia{display:flex;align-items:baseline;gap:6px;padding:0 4px 8px;border-bottom:1px solid var(--borde);margin-bottom:var(--e1)}
+.semana-dia b{font-size:16px;font-weight:600}
+.semana-celda{display:grid;gap:2px;padding:var(--e2) 6px;border:0;border-radius:var(--r-chico);background:transparent;text-align:left;color:inherit;font:inherit;cursor:pointer;min-width:0;transition:background var(--t-hover)}
+.semana-celda+.semana-celda{border-top:1px solid var(--borde);border-radius:0}
+.semana-celda:hover{background:var(--superficie-3)}
+.semana-celda.pasada{opacity:.55}
+.semana-celda .cod{font-size:11px;color:var(--texto-3)}
+.semana-celda b{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.semana-celda .cupo{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texto-3)}
+.semana-celda .cupo .progreso{flex:1;height:4px}
+.sin-clases{padding:var(--e2) 4px;font-size:12px}
+.semana-nav{display:flex;align-items:center;gap:var(--e2)}
+.semana-nav b{font-size:14px;min-width:160px;text-align:center}
+
+/* armador de rutinas (profe) */
+.armador{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--e6);align-items:start}
+.catalogo{display:grid;gap:var(--e3)}
+.catalogo .cat{display:grid}
+.catalogo .cat-cab{display:flex;align-items:baseline;gap:var(--e2);padding:10px 20px;background:var(--superficie-2);border-top:1px solid var(--borde);border-bottom:1px solid var(--borde);cursor:pointer;user-select:none;width:100%;border-left:0;border-right:0;text-align:left;color:inherit;font:inherit}
+.catalogo .cat-cab b{font-size:13px;font-weight:600}
+.catalogo .cat-cab small{font-size:11px;color:var(--texto-3)}
+.catalogo .cat-cab .cuenta{margin-left:auto;font-size:12px;color:var(--texto-3)}
+.catalogo .cat[aria-expanded="false"] .cat-lista{display:none}
+.cat-lista{display:grid}
+.cat-ej{display:grid;grid-template-columns:1fr auto;gap:var(--e2);align-items:center;min-height:40px;padding:4px 20px;border:0;background:transparent;text-align:left;color:inherit;font:inherit;cursor:pointer;transition:background var(--t-hover)}
+.cat-ej:hover{background:var(--superficie-3)}
+.cat-ej b{font-size:13px;font-weight:500;display:block}
+.cat-ej small{font-size:11px;color:var(--texto-3)}
+.cat-ej .ic{color:var(--marca)}
+.cat-ej[disabled]{opacity:.45;cursor:default}
+.dias-rutina{display:grid;gap:var(--e4)}
+.dia-bloque .panel-cab h3{display:flex;align-items:center;gap:var(--e2)}
+.fila-ej{display:grid;grid-template-columns:auto 1fr auto;gap:var(--e3);align-items:center;padding:var(--e2) 20px;min-height:48px}
+.fila-ej+.fila-ej{border-top:1px solid var(--borde)}
+.fila-ej .orden{width:24px;height:24px;border-radius:var(--r-pastilla);background:var(--superficie-3);display:grid;place-items:center;font-size:11px;font-weight:600;color:var(--texto-2)}
+.fila-ej .nom{font-size:13px;font-weight:600;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fila-ej .cfg{display:flex;align-items:center;gap:6px}
+.fila-ej .cfg input{width:56px;height:32px;border:1px solid var(--borde-fuerte);border-radius:var(--r-chico);padding:0 8px;text-align:center;font:600 13px var(--fuente);background:var(--superficie);font-variant-numeric:tabular-nums}
+.fila-ej .cfg input.reps{width:80px}
+.fila-ej .cfg input:focus{outline:0;border-color:var(--marca);box-shadow:0 0 0 3px var(--marca-suave)}
+.fila-ej .cfg .x{font-size:12px;color:var(--texto-3)}
+.fila-ej .cfg .btn-icono{width:30px;height:30px}
+.fila-ej .nota-ej{grid-column:2/-1;font-size:12px;color:var(--texto-3)}
+.dia-vacio{padding:var(--e3) 20px;font-size:13px;color:var(--texto-3)}
+.rut-tarjeta{display:grid;gap:var(--e2);padding:var(--e4) 20px;text-decoration:none;background:var(--superficie);border-radius:var(--r);box-shadow:var(--sombra);text-align:left;color:inherit;font:inherit;border:0;cursor:pointer;transition:background var(--t-hover);min-width:0}
+.rut-tarjeta:hover{background:var(--superficie-3)}
+.rut-tarjeta b{font-size:15px;font-weight:600}
+.rut-tarjeta .obj{font-size:13px;color:var(--texto-2)}
+.rut-tarjeta .meta{display:flex;gap:var(--e2);align-items:center;flex-wrap:wrap;font-size:12px;color:var(--texto-3)}
+.rutinas-grilla{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--e4)}
+.video-marcador{position:relative;border-radius:var(--r);background:linear-gradient(160deg,var(--superficie-3),var(--superficie-2) 55%,var(--marca-suave));aspect-ratio:16/9;display:grid;place-items:end start;overflow:hidden;box-shadow:var(--sombra)}
+.video-marcador>video,.video-marcador>iframe{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
+.video-marcador .etq{position:relative;margin:var(--e3);display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--r-pastilla);background:var(--nav);color:var(--nav-texto-2);font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.video-marcador .etq .ic{width:14px;height:14px}
+.video-marcador .play{position:absolute;inset:0;display:grid;place-items:center;color:var(--marca);opacity:.5}
+.video-marcador .play .ic{width:48px;height:48px}
+
+/* muñeco del ejercicio en el modal: a tamaño legible */
+.modal .demo{grid-template-columns:1fr}
+.modal .demo .muneco svg{width:96px}
+
+/* socio: rutina de hoy con carga de series */
+.ej-hoy{display:grid;gap:var(--e3);padding:var(--e4) 20px}
+.ej-hoy+.ej-hoy{border-top:1px solid var(--borde)}
+.ej-hoy .cab{display:grid;grid-template-columns:1fr auto;gap:var(--e2);align-items:start}
+.ej-hoy .cab b{font-size:15px;font-weight:600;display:block}
+.ej-hoy .cab small{font-size:12px;color:var(--texto-3)}
+.ej-hoy .antes{font-size:12px;color:var(--texto-3)}
+.ej-hoy .antes b{color:var(--texto-2);font-weight:600}
+.series-grilla{display:grid;gap:6px}
+.serie{display:grid;grid-template-columns:44px 1fr 1fr auto;gap:var(--e2);align-items:center}
+.serie .n{font-size:12px;font-weight:600;color:var(--texto-3)}
+.serie input{height:40px;border:1px solid var(--borde-fuerte);border-radius:var(--r-chico);padding:0 10px;text-align:center;font:600 15px var(--fuente);background:var(--superficie);font-variant-numeric:tabular-nums;min-width:0;width:100%}
+.serie input:focus{outline:0;border-color:var(--marca);box-shadow:0 0 0 3px var(--marca-suave)}
+.serie input::placeholder{color:var(--texto-3);font-weight:400}
+.serie .ok{width:40px;height:40px;border-radius:var(--r-chico);border:1px solid var(--borde-fuerte);background:var(--superficie);display:grid;place-items:center;color:var(--borde-fuerte);cursor:pointer;transition:background var(--t-hover),border-color var(--t-hover)}
+.serie .ok:hover{border-color:var(--marca);color:var(--marca)}
+.serie .ok[aria-pressed="true"]{background:var(--marca);border-color:var(--marca);color:var(--sobre-marca)}
+.serie .ok .ic{width:18px;height:18px;stroke-width:2.5}
+.serie-cab{display:grid;grid-template-columns:44px 1fr 1fr 40px;gap:var(--e2);font-size:11px;color:var(--texto-3);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.ej-hoy .demo{margin-top:var(--e1)}
+.dia-hoy-cab{display:flex;align-items:center;gap:var(--e3);flex-wrap:wrap}
+.dia-hoy-cab .segmentado{margin-left:auto}
+.plan-tarjeta{display:grid;gap:var(--e3);padding:var(--e6) 20px;background:var(--superficie);border-radius:var(--r);box-shadow:var(--sombra)}
+.plan-tarjeta .display{font-size:36px}
+.plan-tarjeta .display small{font-size:14px;font-weight:400;color:var(--texto-3);margin-left:6px;letter-spacing:0}
+.plan-tarjeta ul{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px;color:var(--texto-2)}
+.plan-tarjeta li{display:flex;gap:8px;align-items:flex-start}
+.plan-tarjeta li .ic{width:16px;height:16px;color:var(--marca);margin-top:1px;flex:none}
+.plan-tarjeta li.no{color:var(--texto-3)}.plan-tarjeta li.no .ic{color:var(--borde-fuerte)}
+.plan-tarjeta li.extra .ic{color:var(--alerta)}
+.semana-socio{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.semana-socio div{display:grid;justify-items:center;gap:4px;padding:8px 0;border-radius:var(--r-chico);background:var(--superficie-2);font-size:11px;color:var(--texto-3)}
+.semana-socio div i{width:8px;height:8px;border-radius:var(--r-pastilla);background:var(--borde-fuerte);display:block}
+.semana-socio div.hecho i{background:var(--marca)}
+.semana-socio div.hoy{box-shadow:inset 0 0 0 1px var(--marca)}
+.semana-socio div.hoy b{color:var(--marca)}
+
+/* gráficos del dueño (CSS, sin librerías) */
+.barras{display:grid;gap:var(--e2)}
+.barras .area{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:end;gap:3px;height:140px}
+.barras .area i{display:block;background:var(--marca);border-radius:3px 3px 0 0;min-height:2px;opacity:.85}
+.barras .area i.fin{background:var(--texto-3);opacity:.5}
+.barras .area i.hoy{background:var(--marca-fuerte);opacity:1}
+.barras .valores{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;font-size:11px;font-weight:600;text-align:center;font-variant-numeric:tabular-nums}
+.barras .eje{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;font-size:10px;color:var(--texto-3);text-align:center}
+.barras-h{display:grid;gap:var(--e2)}
+.barras-h .fila{display:grid;grid-template-columns:140px 1fr auto;gap:var(--e3);align-items:center;font-size:13px}
+.barras-h .fila .progreso{height:8px}
+.barras-h .fila .num{font-weight:600;min-width:64px;text-align:right}
+.horas{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;align-items:end;gap:2px;height:72px}
+.horas i{display:block;background:var(--info);opacity:.6;border-radius:2px 2px 0 0;min-height:2px}
+.horas i.pico{opacity:1}
+.kpi .delta{font-size:12px;font-weight:600;margin-left:6px}
+.kpi .delta.mas{color:var(--marca-fuerte)}.kpi .delta.menos{color:var(--critico)}
+.anillo-plan{display:grid;grid-template-columns:auto 1fr;gap:var(--e4);align-items:center}
+.anillo-plan .leyenda{display:grid;gap:6px;font-size:13px}
+.anillo-plan .leyenda div{display:flex;align-items:center;gap:8px}
+.anillo-plan .leyenda i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.anillo-plan .leyenda .num{margin-left:auto;font-weight:600}
+
+/* ingreso: cuentas de prueba */
+.cuentas-demo{display:grid;gap:6px}
+.cuentas-demo button{display:grid;grid-template-columns:auto 1fr auto;gap:var(--e3);align-items:center;padding:8px 12px;border:1px solid var(--borde);border-radius:var(--r-chico);background:var(--superficie);text-align:left;color:inherit;font:inherit;cursor:pointer;transition:background var(--t-hover)}
+.cuentas-demo button:hover{background:var(--superficie-3)}
+.cuentas-demo b{font-size:13px;font-weight:600;display:block}
+.cuentas-demo small{font-size:11px;color:var(--texto-3)}
+.cuentas-demo .cod{color:var(--texto-3);font-size:12px}
+.ingreso .demo-int{font-size:12px;color:var(--texto-3);text-align:center}
+.ingreso .demo-int a{color:var(--texto-2)}
+
+/* ayudas chicas de los paneles */
+.vivo-bloque{padding:0 20px}
+.vivo-p{margin-top:var(--e2)}
+.vivo-mini.una{grid-template-columns:1fr}
+.panel-cuerpo.sin-arriba{padding-top:0}
+.lista-simple.sin-borde{border:0;border-radius:0}
+.grupo-cab.sin-borde-top{border-top:0;border-radius:var(--r-chico) var(--r-chico) 0 0}
+.pila-grande{display:grid;gap:var(--e8)}
+.grupo-nota{padding:var(--e2) 0 var(--e3)}
+.chips-arriba{margin-top:var(--e2)}
+.barras .area.chica{height:80px}
+.barras .area.media{height:100px}
+.barras .area.mini{height:48px}
+.horas+.eje{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;font-size:10px;color:var(--texto-3);text-align:center;margin-top:var(--e1)}
+.anillo{width:96px;height:96px;border-radius:var(--r-pastilla);display:grid;place-items:center}
+.anillo>div{width:64px;height:64px;border-radius:var(--r-pastilla);background:var(--superficie);display:grid;place-items:center;font-weight:600;font-size:16px}
+.pastilla-estado.auto{justify-self:start}
+.ej-hoy.tocable{width:100%;border:0;background:none;text-align:left;font:inherit;color:inherit;cursor:pointer;transition:background var(--t-hover)}
+.ej-hoy.tocable:hover{background:var(--superficie-3)}
+
+/* ---- cortes ---- */
+@media(max-width:1520px){.rutinas-grilla{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:1180px){
+  .nav-pie #yo .persona{justify-content:center}
+  .nav-pie .btn{width:36px;padding:0;justify-content:center}
+  .nav-pie .btn span{display:none}
+  .contenido.partido{grid-template-columns:300px minmax(0,1fr);gap:var(--e4)}
+  .armador{grid-template-columns:1fr}
+  .semana{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:760px){
+  .app{grid-template-columns:1fr}
+  .nav{display:none}
+  .solo-celu{display:inline-grid}
+  .pestanas{display:grid;position:fixed;left:0;right:0;bottom:0;z-index:20;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+  .contenido{padding-bottom:calc(var(--e12) + 56px)}
+  .contenido.partido{grid-template-columns:1fr}
+  .vivo{position:static;max-height:none;display:none}
+  body[data-sec="ahora"] .vivo{display:grid}
+  body[data-sec="ahora"] .trabajo{display:none}
+  .ficha-grilla,.fila-campos{grid-template-columns:1fr}
+  .semana{grid-template-columns:1fr 1fr}
+  .rutinas-grilla{grid-template-columns:1fr}
+  .barras-h .fila{grid-template-columns:100px 1fr auto}
+  .kpi .v{font-size:24px}
+  .cabecera .acciones .btn span{display:none}
+  .solo-compu,.solo-compu-semana{display:none}
+}
+
+/* En compu cada sección entra en la pantalla: el armazón mide lo que la ventana y las
+   listas son elásticas: muestran las filas que entran y el resto se recorre adentro del
+   panel, no en la página. panel.js envuelve el cuerpo recorrible de cada panel en
+   `.panel-elastico`: lo que va entre la cabecera y el pie, dejando afuera los
+   `.panel-cuerpo` (buscador, chips, gráficos: no se achican) salvo que lleven `elastico`.
+   El piso de cada uno es su propio alto o `--piso-elastico`, lo que sea menor: una lista
+   corta nunca se achica y una larga muestra por lo menos tres filas. Si ni así entra, se
+   recorre `.contenido` entero: nada queda inalcanzable. */
+@media(min-width:761px){
+  :root{--piso-elastico:128px}
+  .app{height:100vh;height:100dvh;min-height:0}
+  .principal{height:100vh;height:100dvh;overflow:hidden}
+  .contenido{flex:1;min-height:0;overflow:auto;grid-template-rows:minmax(0,1fr);align-content:stretch;padding-bottom:var(--e6)}
+  .contenido.partido{align-items:stretch}
+  .vivo{position:static;top:auto;max-height:none;min-height:0;overflow:auto}
+  .trabajo,.trabajo .col{display:flex;flex-direction:column;min-height:0}
+  .trabajo>*,.trabajo .col>*{flex:none}
+  .trabajo .panel:has(>.panel-elastico){display:flex;flex-direction:column;flex:0 1 auto;min-height:0}
+  .trabajo .panel:has(>.panel-elastico)>:not(.panel-elastico){flex:none}
+  .trabajo .fila-2:has(.panel-elastico),.trabajo .fila-3:has(.panel-elastico){flex:0 1 auto;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch}
+  /* armador de rutinas: el catálogo y los días se recorren cada uno por su lado */
+  .trabajo .armador:has(.panel-elastico){flex:0 1 auto;min-height:0;grid-template-rows:minmax(0,1fr);align-items:stretch}
+  .trabajo .armador:has(.panel-elastico)>.dias-rutina{min-height:0;overflow:auto;align-content:start;grid-auto-rows:max-content;margin:0 calc(-1 * var(--e3));padding:0 var(--e3)}   /* el margen negativo deja ver la sombra de los paneles */
+  .panel-elastico{flex:0 1 auto;min-height:0;overflow:auto;display:flex;flex-direction:column}
+  .panel-elastico>*{flex:none}
+  .panel-elastico:last-child{border-radius:0 0 var(--r) var(--r)}   /* el panel con buscador no recorta: redondea el área recorrible */
+  /* dentro del área recorrible, el encabezado de la tabla y los títulos de grupo quedan pegados */
+  .panel-elastico .tabla th{position:sticky;top:0;z-index:1}
+  .panel-elastico>.grupo-cab{position:sticky;top:0;z-index:1}
+  .panel-elastico .semana-dia{position:sticky;top:0;z-index:1;background:var(--superficie)}
+  .panel-elastico .panel-pie{position:sticky;bottom:0;background:var(--superficie)}
+}

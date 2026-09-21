@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mi perfil · Natura Gym</title>
+<meta name="theme-color" content="#0F1A12">
+<link rel="icon" href="../recursos/logo.png">
+<link rel="stylesheet" href="../estilos/ds.css">
+<link rel="stylesheet" href="../estilos/sitio.css">
+</head>
+<body>
+<div class="app" id="app" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="../js/ds.js"></script>
+<script src="../js/config.js"></script>
+<script src="../datos/contenido.js"></script>
+<script src="../datos/ejercicios.js"></script>
+<script src="../datos/demo.js"></script>
+<script src="../js/api.js"></script>
+<script src="../js/consultas.js"></script>
+<script src="../js/pago.js"></script>
+<script src="../js/cuenta.js"></script>
+<script src="../js/panel.js"></script>
+<script>
+// Perfil del socio: el mismo armazón que los otros paneles («el mostrador partido»,
+// sin columna en vivo), con tres secciones y nada más: plan, cuándo puede venir, pagos.
+// Mi Natura (rutina, clases, progreso) queda en app/ pero por ahora no se enlaza.
+const {$,$$,ic,ARS,fechaCorta,toast,vacio,DIAS_C}=DS;
+const C=CONTENIDO;
+const MEDIO={efectivo:'efectivo',transferencia:'transferencia',tarjeta:'tarjeta',mercado_pago:'Mercado Pago',otro:'otro'};
+const wa=txt=>`https://wa.me/${C.gym.whatsapp}?text=${encodeURIComponent(txt)}`;
+const volver=`<a class="btn btn-fantasma" href="../index.html" title="Volver a la página del gym">${ic('volver')}<span>Volver a la página</span></a>`;
+
+const pendienteDe=ctx=>(ctx.d.solicitudes||[]).filter(s=>s.persona_id===ctx.yo.id&&s.estado==='pendiente').sort((a,b)=>b.creado_en.localeCompare(a.creado_en))[0]||null;
+// plan activo, o el pedido desde la página mientras el gym no confirme el pago
+const planInfo=(ctx,c,sol)=>c.plan?CUENTA.planDe(c.plan.id):sol?CUENTA.planDe(sol.plan_id):null;
+
+/* ---------- plan ---------- */
+function plan(ctx){
+  const d=ctx.d,yo=ctx.yo;const c=Q.cuota(d,yo.id);const sol=pendienteDe(ctx);const info=planInfo(ctx,c,sol);const soloPedido=!c.plan&&!!sol;
+  ctx._modo=ctx._modo||null;   // null · 'pagar' (cómo pagar la solicitud) · 'elegir' (plan nuevo)
+  const tarjeta=`<div class="plan-tarjeta"><span class="rotulo">Tu plan</span>
+    <div><span class="display">${info?info.nombre:'Sin plan'}</span></div>
+    <span class="pastilla-estado ${soloPedido?'alerta':c.tono||''} auto"><i></i>${soloPedido?'Por confirmar el pago':c.texto}${c.membresia?` · hasta el ${fechaCorta(Q.fechaDe(c.membresia.hasta))}`:''}</span>
+    ${c.membresia?`<p class="secundario">${c.membresia.periodo==='trimestral'?'Trimestral':'Mensual'} · pagaste ${ARS(c.membresia.importe)} ${c.membresia.medio==='efectivo'?'en efectivo (10 % menos)':'por '+MEDIO[c.membresia.medio]}${c.membresia.congelada_desde?' · congelado desde el '+fechaCorta(Q.fechaDe(c.membresia.congelada_desde)):''}.</p>`
+      :sol?`<p class="secundario">Elegiste ${info.nombre} ${CUENTA.nombrePeriodo(sol.periodo)}. En cuanto el gym confirme el pago, arranca.</p>`:'<p class="secundario">Todavía no tenés un plan activo. Elegí uno y pagalo desde acá, o pasá por el mostrador.</p>'}
+    ${info?`<ul>${info.items.map(([k,t])=>`<li class="${k}">${ic(k==='si'?'tilde':k==='no'?'menos':'mas')}<span>${t}</span></li>`).join('')}</ul>`:''}
+    <div class="fila-btn">${sol||ctx._modo==='elegir'?'':`<button type="button" class="btn ${['vencida','vence_hoy','por_vencer','sin_plan'].includes(c.estado)?'btn-primario':'btn-secundario'}" id="btn-elegir">${ic('pagos')}${c.plan?'Renovar o cambiar de plan':'Elegir un plan'}</button>`}<a class="btn btn-fantasma" href="${wa(`Hola, soy ${yo.nombre}. Tengo una consulta sobre mi plan.`)}" target="_blank" rel="noopener">${ic('wa')}Consultar por WhatsApp</a></div>
+  </div>`;
+  const solPlan=sol?CUENTA.planDe(sol.plan_id):null;
+  const pendiente=sol&&ctx._modo!=='elegir'?`<div class="pendiente"><div class="fila"><span class="badge alerta">Por confirmar</span><b>${solPlan.nombre} · ${CUENTA.nombrePeriodo(sol.periodo)} · ${ARS(sol.importe||PAGO.importe(solPlan,sol.periodo,sol.medio).total)}</b></div>
+      <p>Elegiste pagar por <b>${PAGO.nombreMedio(sol.medio)}</b>. ${sol.medio==='efectivo'?'El plan arranca cuando pagás en el mostrador.':'Cuando el gym confirma el pago, el plan arranca y lo ves acá arriba.'}</p>
+      <div class="fila"><button type="button" class="btn btn-primario" id="btn-como-pagar" aria-expanded="${ctx._modo==='pagar'}">${ctx._modo==='pagar'?'Ocultar':'Ver cómo pagar'}</button><button type="button" class="btn btn-fantasma" id="btn-otro-plan">Cambiar de plan</button></div>
+      ${ctx._modo==='pagar'?'<div id="pago"></div>':''}</div>`
+    :ctx._modo==='elegir'?`<div class="panel"><div class="panel-cab"><h3>Elegí el plan</h3><span class="sub">${c.membresia&&c.dias>=0?`arranca cuando vence el actual (${fechaCorta(Q.fechaDe(c.membresia.hasta))})`:'arranca cuando el gym confirma el pago'}</span><div class="der"><button type="button" class="btn btn-fantasma btn-compacto" id="btn-cancelar-elegir">Cancelar</button></div></div>
+      <div class="panel-cuerpo pila"><div id="selector-plan"></div><div id="pago"></div><div><button type="button" class="btn btn-primario btn-grande" id="btn-confirmar">Elegí este plan y pagá así</button></div></div></div>`:'';
+  return `<div class="mi-perfil">${tarjeta}${pendiente}</div>`;
+}
+function montarPlan(ctx,el){
+  const c=Q.cuota(ctx.d,ctx.yo.id);const sol=pendienteDe(ctx);
+  const be=$('#btn-elegir',el);if(be)be.onclick=()=>{ctx._sel={plan_id:c.plan?c.plan.id:'premium',periodo:c.membresia?c.membresia.periodo:'mensual',medio:'mercado_pago'};ctx._modo='elegir';ctx.pintar();};
+  const bc=$('#btn-cancelar-elegir',el);if(bc)bc.onclick=()=>{ctx._modo=null;ctx.pintar();};
+  const bp=$('#btn-como-pagar',el);if(bp)bp.onclick=()=>{ctx._modo=ctx._modo==='pagar'?null:'pagar';ctx.pintar();};
+  const bo=$('#btn-otro-plan',el);if(bo)bo.onclick=()=>{ctx._sel={plan_id:sol.plan_id,periodo:sol.periodo,medio:sol.medio};ctx._modo='elegir';ctx.pintar();};
+  if(!ctx._modo)return;
+  if(ctx._modo==='pagar'&&sol){
+    const pe={plan:CUENTA.planDe(sol.plan_id),periodo:sol.periodo,medio:sol.medio,persona:ctx.yo};
+    PAGO.montar($('#pago',el),pe,async(medio,importe)=>{try{await API.elegirMedio(sol.id,medio,importe);sol.medio=medio;sol.importe=importe;toast(`Vas a pagar por ${PAGO.nombreMedio(medio)}`);}catch(e){toast(e.message,'alerta');}});
+    return;
+  }
+  const sel=ctx._sel;
+  const montarPago=()=>{const pe={plan:CUENTA.planDe(sel.plan_id),periodo:sel.periodo,medio:sel.medio,persona:ctx.yo};PAGO.montar($('#pago',el),pe,medio=>{sel.medio=medio;});};
+  CUENTA.selectorPlan($('#selector-plan',el),sel,montarPago);
+  montarPago();
+  $('#btn-confirmar',el).onclick=async()=>{
+    const btn=$('#btn-confirmar',el);btn.disabled=true;btn.textContent='Guardando…';
+    try{const imp=PAGO.importe(CUENTA.planDe(sel.plan_id),sel.periodo,sel.medio);await API.crearSolicitud({persona_id:ctx.yo.id,plan_id:sel.plan_id,periodo:sel.periodo,medio:sel.medio,importe:imp.total});await ctx.recargar();ctx._modo='pagar';ctx.pintar();toast('Plan elegido: el gym lo confirma cuando ve el pago');}
+    catch(e){toast(e.message,'alerta');btn.disabled=false;btn.textContent='Elegí este plan y pagá así';}
+  };
+}
+
+/* ---------- cuándo podés venir ---------- */
+function dias(ctx){
+  const d=ctx.d,yo=ctx.yo;const c=Q.cuota(d,yo.id);const sol=pendienteDe(ctx);const info=planInfo(ctx,c,sol);
+  const lunes=Q.lunesDe(Q.hoyIso());const hoy=Q.hoyIso();
+  const diasSem=Array.from({length:7},(_,i)=>{const f=Q.sumarDias(lunes,i);return {f,hecho:d.ingresos.some(x=>x.persona_id===yo.id&&x.momento.slice(0,10)===f)||d.registros.some(x=>x.persona_id===yo.id&&x.fecha===f)};});
+  const veces=diasSem.filter(x=>x.hecho).length;const prox=Q.proximasReservas(d,yo.id).slice(0,4);const r=Q.miRutina(d,yo.id);
+  return `<div class="mi-perfil"><div class="panel"><div class="panel-cab"><h3>Horario del gym</h3><span class="sub">${C.gym.horario}</span></div>
+    <div class="panel-cuerpo pila">
+      <div class="dias-info">
+        <div><b>${info?info.ingresosPorDia===2?'2 ingresos por día':'1 ingreso por día':'Ingresos por día'}</b><span>${info?info.ingresosPorDia===2?'venís a la mañana y volvés a la tarde':'Gold permite dos':'1 con Básico y Premium, 2 con Gold'}</span></div>
+        <div><b>${info?info.clasesIncluidas?'Clases incluidas':'Clases: pago extra':'Clases grupales'}</b><span>${info?info.clasesIncluidas?'las reservás en el mostrador':'las reservás y arreglás en el mostrador':'incluidas desde Premium'}</span></div>
+        <div><b>${r?`${r.rutina.dias} días por semana`:'Sin rutina'}</b><span>${r?`lo que pide tu rutina · ${r.rutina.nombre}`:'el profe te la arma la primera semana'}</span></div>
+      </div>
+    </div></div>
+    <div class="panel"><div class="panel-cab"><h3>Esta semana</h3><span class="sub">${veces?`viniste ${veces} ${veces===1?'vez':'veces'}`:'todavía no viniste'}${r?` · la rutina pide ${r.rutina.dias}`:''}</span></div>
+      <div class="panel-cuerpo"><div class="semana-socio">${diasSem.map(x=>`<div class="${x.hecho?'hecho':''}${x.f===hoy?' hoy':''}"><span>${DIAS_C[Q.fechaDe(x.f).getDay()]}</span><b>${Q.fechaDe(x.f).getDate()}</b><i></i></div>`).join('')}</div></div></div>
+    <div class="panel"><div class="panel-cab"><h3>Clases reservadas</h3><span class="sub">${prox.length?`${prox.length} próxima${prox.length===1?'':'s'}`:''}</span></div>
+      ${prox.length?`<div class="lista-simple sin-borde">${prox.map(x=>`<div class="fila-reserva"><span class="cod">${fechaCorta(Q.fechaDe(x.fecha))} ${x.clase.hora}</span><b>${x.clase.nombre}</b><span class="badge ok">Reservada</span></div>`).join('')}</div>`
+        :vacio('No tenés clases reservadas','Anotate en el mostrador o por WhatsApp; acá ves las que tenés.')}</div></div>`;
+}
+
+/* ---------- pagos ---------- */
+function pagos(ctx){
+  const d=ctx.d;const ps=ctx._pagos||[];const sol=pendienteDe(ctx);
+  return `<div class="mi-perfil">${sol?`<div class="nota">${ic('info')}<span>Hay un pago <b>por confirmar</b>: ${CUENTA.planDe(sol.plan_id).nombre} ${CUENTA.nombrePeriodo(sol.periodo)}, ${ARS(sol.importe||0)} por ${PAGO.nombreMedio(sol.medio)}. Cuando el gym lo confirme aparece acá abajo. <a href="#plan" class="enlace">Ver cómo pagar</a>.</span></div>`:''}
+    <div class="panel"><div class="panel-cab"><h3>Pagos</h3><span class="sub">${ps.length?`${ps.length} en total`:''}</span></div>
+    ${ps.length?`<div class="lista-simple sin-borde">${ps.map(p=>{const m=d.membresias.find(x=>x.id===p.membresia_id);const pl=m?CUENTA.planDe(m.plan_id):null;return `<div class="fila-reserva"><span class="cod">${fechaCorta(Q.fechaDe(p.fecha))}</span><span><b>${ARS(p.importe)}</b>${pl?`<small class="secundario"> · ${pl.nombre} ${m.periodo==='trimestral'?'3 meses':'mensual'}</small>`:''}</span><span class="badge">${MEDIO[p.medio]||p.medio}</span></div>`;}).join('')}</div>`
+      :vacio('Todavía no hay pagos','Cuando el gym confirme el primero, aparece acá con la fecha y el medio.')}</div></div>`;
+}
+
+PANEL.montar({
+  roles:['socio'], subtitulo:'Mi perfil',
+  grupos:[{rotulo:'Mi cuenta',secciones:['plan','dias','pagos']}],
+  pestanas:['plan','dias','pagos'],
+  vivo:null,
+  async alEntrar(ctx){ctx._pagos=await API.pagosDe(ctx.yo.id);ctx.pintar();},
+  secciones:{
+    plan:{t:'Mi plan',ic:'planes',d:(ctx)=>{const c=Q.cuota(ctx.d,ctx.yo.id);return c.plan?`${c.plan.nombre} · ${c.texto}`:pendienteDe(ctx)?'Pago por confirmar':'Sin plan activo';},h:plan,montar:montarPlan,accion:()=>volver},
+    dias:{t:'Cuándo venir',ic:'hoy',d:'Horario, ingresos por día y tus clases',h:dias,accion:()=>volver},
+    pagos:{t:'Pagos',ic:'pagos',d:'Lo que pagaste y lo que falta confirmar',h:pagos,accion:()=>volver},
+  },
+});
+</script>
+</body>
+</html>

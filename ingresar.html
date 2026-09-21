@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Iniciar sesión · Natura Gym</title>
+<meta name="theme-color" content="#0F1A12">
+<link rel="icon" href="recursos/logo.png">
+<link rel="stylesheet" href="estilos/ds.css">
+<link rel="stylesheet" href="estilos/sitio.css">
+</head>
+<body>
+<div class="ingreso">
+  <div class="caja">
+    <a class="marca" href="index.html"><img src="recursos/logo.png" alt=""><b>Natura Gym</b></a>
+    <div>
+      <h1>Iniciar sesión</h1>
+      <p class="sub">Entrá con tu teléfono y tu clave (la que elegiste al registrarte o la que te dieron en el gym). Según tu cuenta, vas a tu perfil (plan, días y pagos), al mostrador, a las rutinas del profe o a la administración.</p>
+    </div>
+    <div id="aviso"></div>
+    <form id="form" novalidate>
+      <label class="campo"><span class="rotulo">Teléfono o mail</span><input id="id" type="text" inputmode="email" autocomplete="username" placeholder="358 555 0101" required autofocus></label>
+      <label class="campo"><span class="rotulo">Clave</span><input id="clave" type="password" autocomplete="current-password" required></label>
+      <button class="btn btn-primario btn-grande btn-bloque" type="submit" id="btn">Entrar</button>
+    </form>
+    <div id="demo" hidden>
+      <span class="rotulo">Cuentas de prueba · clave 1234</span>
+      <div class="cuentas-demo" id="cuentas"></div>
+    </div>
+    <p class="pie">¿No tenés cuenta? <a href="registro.html">Registrate acá</a>, <a id="pedir" href="#" target="_blank" rel="noopener">pedila por WhatsApp</a> o en el mostrador.</p>
+    <p class="demo-int" id="demo-int"></p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ds.js"></script>
+<script src="js/config.js"></script>
+<script src="datos/contenido.js"></script>
+<script src="datos/ejercicios.js"></script>
+<script src="datos/demo.js"></script>
+<script src="js/api.js"></script>
+<script>
+const {$,$$,ic}=DS;
+$('#pedir').href=`https://wa.me/${CONTENIDO.gym.whatsapp}?text=${encodeURIComponent('Hola, quiero mi cuenta para entrar a la página del gym')}`;
+const aviso=(txt,tipo='critico')=>{$('#aviso').innerHTML=txt?`<div class="aviso ${tipo}" role="alert">${ic(tipo==='critico'?'alerta':'info')}<span>${txt}</span></div>`:'';};
+
+// Modo demo: cuentas de prueba a un toque. El interruptor queda guardado en el navegador.
+if(API.demo){
+  $('#demo').hidden=false;
+  const cuentas=[['socio','Martina Ríos','Socia · rutina, clases, plan y progreso','socio'],['nuevo','Rodrigo Paz','Socio nuevo · primer ingreso, elige clave','socio'],['recepcion','Carolina','Recepción · ingresos, turnos, altas y cobros','ingreso'],['profe','Nico','Profe · rutinas, ejercicios con video y clases','rutina'],['admin','Natura Gym','Dueño · indicadores, socios, cobros y equipo','dueno']];
+  $('#cuentas').innerHTML=cuentas.map(([u,n,q,i])=>`<button type="button" data-u="${u}">${ic(i)}<span><b>${n}</b><small>${q}</small></span><span class="cod">${u}</span></button>`).join('');
+  $$('#cuentas button').forEach(b=>b.onclick=()=>{$('#id').value=b.dataset.u;$('#clave').value='1234';$('#form').requestSubmit();});
+  $('#demo-int').innerHTML=API.sinConfig?'Modo demo: datos inventados en este navegador, sin base de datos.':'Modo demo con datos inventados. <a href="ingresar.html?demo=0">Volver a la base real</a>.';
+}else{
+  $('#demo-int').innerHTML='Conectado a la base del gym. <a href="ingresar.html?demo=1">Ver la demo con datos inventados</a>.';
+}
+
+const volver=new URLSearchParams(location.search).get('volver');
+
+// Si ya hay sesión, no tiene sentido mostrar el formulario.
+API.sesion().then(p=>{if(p)location.replace(volver||API.destino(p));});
+
+$('#form').onsubmit=async e=>{
+  e.preventDefault();
+  const id=$('#id').value.trim(),clave=$('#clave').value;
+  if(!id||!clave){aviso('Completá el teléfono y la clave.');return;}
+  const btn=$('#btn');btn.disabled=true;btn.textContent='Entrando…';aviso('');
+  try{
+    const p=await API.ingresar(id,clave);
+    location.replace(p.debe_cambiar_clave?'clave.html':(volver||API.destino(p)));
+  }catch(err){aviso(err.message);btn.disabled=false;btn.textContent='Entrar';}
+};
+</script>
+</body>
+</html>

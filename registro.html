@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hacete socio · Natura Gym</title>
+<meta name="description" content="Registrate en Natura Gym desde el celular: elegís el plan, creás tu cuenta y pagás con Mercado Pago, Naranja X, transferencia o efectivo en el gym.">
+<meta name="theme-color" content="#0F1216">
+<link rel="icon" href="recursos/logo.png">
+<link rel="stylesheet" href="estilos/ds.css">
+<link rel="stylesheet" href="estilos/sitio.css">
+<script>(function(){var t=new URLSearchParams(location.search).get('tema');document.documentElement.dataset.theme=t==='light'?'light':'dark';})();</script>
+</head>
+<body>
+<div id="barra"></div>
+
+<main class="registro">
+  <div class="cab">
+    <h1>Hacete socio</h1>
+    <p class="dice">Elegís el plan, creás tu cuenta y pagás como te quede cómodo. Tres pasos desde el celular; el gym confirma el pago y ya podés entrar.</p>
+  </div>
+  <div id="aviso"></div>
+  <div class="pasos">
+    <section class="paso" id="paso-plan" data-estado="activo">
+      <div class="paso-cab"><span class="n">1</span><h2>Tu plan</h2><span class="resumen" id="res-plan"></span><button type="button" class="btn btn-fantasma btn-compacto" id="cambiar-plan" hidden>Cambiar</button></div>
+      <div class="paso-cuerpo">
+        <div id="selector-plan"></div>
+        <div><button type="button" class="btn btn-primario btn-grande" id="btn-seguir">Seguir con este plan</button></div>
+      </div>
+    </section>
+
+    <section class="paso" id="paso-cuenta" data-estado="pendiente">
+      <div class="paso-cab"><span class="n">2</span><h2>Tu cuenta</h2><span class="resumen" id="res-cuenta"></span></div>
+      <div class="paso-cuerpo">
+        <form id="form" class="form-registro" novalidate>
+          <label class="campo"><span class="rotulo">Nombre y apellido</span><input id="nombre" type="text" autocomplete="name" placeholder="Como te conocen en el gym" required></label>
+          <div class="dos">
+            <label class="campo"><span class="rotulo">Teléfono</span><input id="telefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="358 555 0101" required><span class="ayuda">Con él entrás a tu cuenta.</span></label>
+            <label class="campo"><span class="rotulo">Elegí una clave</span><input id="clave" type="password" autocomplete="new-password" minlength="4" required><span class="ayuda">Al menos 4 caracteres.</span></label>
+          </div>
+          <div class="acciones">
+            <button class="btn btn-primario btn-grande" type="submit" id="btn-crear">Crear mi cuenta</button>
+            <span class="secundario">¿Ya tenés cuenta? <a href="ingresar.html">Iniciá sesión</a></span>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="paso" id="paso-pago" data-estado="pendiente">
+      <div class="paso-cab"><span class="n">3</span><h2>Pagá</h2><span class="resumen" id="res-pago"></span></div>
+      <div class="paso-cuerpo">
+        <div id="pago"></div>
+        <div class="nota" id="nota-pago"></div>
+        <div><a class="btn btn-primario btn-grande" href="perfil/index.html" id="btn-listo">Listo, ir a mi perfil</a></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ds.js"></script>
+<script src="js/config.js"></script>
+<script src="datos/contenido.js"></script>
+<script src="datos/ejercicios.js"></script>
+<script src="datos/demo.js"></script>
+<script src="js/api.js"></script>
+<script src="js/pago.js"></script>
+<script src="js/cuenta.js"></script>
+<script>
+const {$,$$,ic,ARS,toast}=DS;
+const C=CONTENIDO;
+const q=new URLSearchParams(location.search);
+$('#barra').innerHTML=CUENTA.barra(`<a class="btn btn-fantasma btn-compacto" href="ingresar.html">Iniciar sesión</a>`);
+const aviso=(txt,tipo='critico')=>{$('#aviso').innerHTML=txt?`<div class="aviso ${tipo}" role="alert">${ic(tipo==='critico'?'alerta':'info')}<span>${txt}</span></div>`:'';};
+
+// Estado del registro. El plan puede venir en la URL desde la página (Elegir Premium).
+const est={
+  plan_id:C.planes.some(p=>p.id===q.get('plan'))?q.get('plan'):C.planes.find(p=>p.elegido).id,
+  periodo:q.get('periodo')==='trimestral'?'trimestral':'mensual',
+  medio:['mercado_pago','tarjeta','transferencia','efectivo'].includes(q.get('medio'))?q.get('medio'):'mercado_pago',
+  persona:null,solicitud:null,
+};
+const plan=()=>CUENTA.planDe(est.plan_id);
+const pasos={plan:$('#paso-plan'),cuenta:$('#paso-cuenta'),pago:$('#paso-pago')};
+function irA(k){
+  const orden=['plan','cuenta','pago'];const i=orden.indexOf(k);
+  orden.forEach((x,n)=>{pasos[x].dataset.estado=n<i?'hecho':n===i?'activo':'pendiente';$('.n',pasos[x]).innerHTML=n<i?ic('tilde'):String(n+1);});
+  $('#cambiar-plan').hidden=k==='plan'||!!est.persona;
+  pasos[k].scrollIntoView({behavior:'smooth',block:'start'});
+}
+function resumenPlan(){const imp=PAGO.importe(plan(),est.periodo,est.medio);$('#res-plan').textContent=`${plan().nombre} · ${CUENTA.nombrePeriodo(est.periodo)} · ${ARS(imp.total)}`;}
+
+// Si ya hay sesión no tiene sentido registrarse: al perfil.
+API.sesion().then(p=>{if(p)location.replace(API.destino(p));});
+
+/* paso 1: plan */
+CUENTA.selectorPlan($('#selector-plan'),est,resumenPlan);
+resumenPlan();
+$('#btn-seguir').onclick=()=>{irA('cuenta');$('#nombre').focus({preventScroll:true});};
+$('#cambiar-plan').onclick=()=>irA('plan');
+
+/* paso 2: cuenta */
+$('#form').onsubmit=async e=>{
+  e.preventDefault();
+  const nombre=$('#nombre').value.trim(),telefono=$('#telefono').value.trim(),clave=$('#clave').value;
+  if(nombre.length<3){aviso('Poné tu nombre y apellido.');$('#nombre').focus();return;}
+  if(telefono.replace(/\D/g,'').length<8){aviso('El teléfono no parece completo.');$('#telefono').focus();return;}
+  if(clave.length<4){aviso('La clave tiene que tener al menos 4 caracteres.');$('#clave').focus();return;}
+  const btn=$('#btn-crear');btn.disabled=true;btn.textContent='Creando…';aviso('');
+  try{
+    const imp=PAGO.importe(plan(),est.periodo,est.medio);
+    est.persona=await API.registrarse({nombre,telefono,clave,plan_id:est.plan_id,periodo:est.periodo,medio:est.medio,importe:imp.total});
+    const d=await API.datos();est.solicitud=(d.solicitudes||[]).filter(s=>s.persona_id===est.persona.id&&s.estado==='pendiente').sort((a,b)=>b.creado_en.localeCompare(a.creado_en))[0]||null;
+    $('#res-cuenta').textContent=`${nombre} · ${telefono}`;
+    $$('#form input').forEach(i=>i.disabled=true);
+    montarPago();irA('pago');toast(`Cuenta creada, ${nombre.split(' ')[0]}`);
+  }catch(err){aviso(err.message);btn.disabled=false;btn.textContent='Crear mi cuenta';}
+};
+
+/* paso 3: pago */
+function montarPago(){
+  const pe={plan:plan(),periodo:est.periodo,medio:est.medio,persona:est.persona};
+  const nota=()=>{$('#res-pago').textContent=PAGO.nombreMedio(pe.medio);$('#nota-pago').innerHTML=`${ic('info')}<span>Tu cuenta ya está creada. ${pe.medio==='efectivo'?'El plan arranca el día que pagás en el mostrador.':'Cuando el gym confirma el pago, el plan arranca; lo ves en tu perfil como «por confirmar» hasta entonces.'} ${C.gym.horario}.</span>`;};
+  PAGO.montar($('#pago'),pe,async(medio,importe)=>{est.medio=medio;nota();if(est.solicitud){try{await API.elegirMedio(est.solicitud.id,medio,importe);}catch(e){toast(e.message,'alerta');}}});
+  nota();
+}
+</script>
+</body>
+</html>

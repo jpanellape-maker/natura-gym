@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Elegí tu clave · Natura Gym</title>
+<meta name="theme-color" content="#0F1A12">
+<link rel="icon" href="recursos/logo.png">
+<link rel="stylesheet" href="estilos/ds.css">
+<link rel="stylesheet" href="estilos/sitio.css">
+</head>
+<body>
+<div class="ingreso">
+  <div class="caja">
+    <a class="marca" href="index.html"><img src="recursos/logo.png" alt=""><b>Natura Gym</b></a>
+    <div>
+      <h1 id="titulo">Elegí tu clave</h1>
+      <p class="sub">Es tu primer ingreso. La clave que te dieron en el gym se reemplaza por una tuya, de al menos 6 caracteres.</p>
+    </div>
+    <div id="aviso"></div>
+    <form id="form" novalidate>
+      <label class="campo"><span class="rotulo">Clave nueva</span><input id="c1" type="password" autocomplete="new-password" minlength="6" required autofocus></label>
+      <label class="campo"><span class="rotulo">Repetila</span><input id="c2" type="password" autocomplete="new-password" minlength="6" required></label>
+      <button class="btn btn-primario btn-grande btn-bloque" type="submit" id="btn">Guardar y entrar</button>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/ds.js"></script>
+<script src="js/config.js"></script>
+<script src="datos/ejercicios.js"></script>
+<script src="datos/demo.js"></script>
+<script src="js/api.js"></script>
+<script>
+const {$,ic}=DS;
+const aviso=(txt,tipo='critico')=>{$('#aviso').innerHTML=txt?`<div class="aviso ${tipo}" role="alert">${ic(tipo==='critico'?'alerta':'info')}<span>${txt}</span></div>`:'';};
+let persona=null;
+API.sesion().then(p=>{
+  if(!p){location.replace('ingresar.html');return;}
+  persona=p;
+  $('#titulo').textContent=`${p.nombre.split(' ')[0]}, elegí tu clave`;
+});
+$('#form').onsubmit=async e=>{
+  e.preventDefault();
+  const c1=$('#c1').value,c2=$('#c2').value;
+  if(c1.length<6){aviso('La clave tiene que tener al menos 6 caracteres.');return;}
+  if(c1!==c2){aviso('Las dos claves no coinciden.');return;}
+  const btn=$('#btn');btn.disabled=true;btn.textContent='Guardando…';aviso('');
+  try{const p=await API.cambiarClave(c1);location.replace(API.destino(p));}
+  catch(err){aviso(err.message);btn.disabled=false;btn.textContent='Guardar y entrar';}
+};
+</script>
+</body>
+</html>
